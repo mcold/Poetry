@@ -20,12 +20,12 @@ import (
 )
 
 type Config struct {
-	App        fyne.App
-	MainWindow fyne.Window
-	InfoLog    *log.Logger
-	DB         db_repo.Repository
-	// ListLines     []db_repo.Line
+	App           fyne.App
+	MainWindow    fyne.Window
+	InfoLog       *log.Logger
+	DB            db_repo.Repository
 	LinesArr      []string
+	LinesArrDef   []string // text by default
 	ListLinesData binding.ExternalStringList
 	ListTransData binding.ExternalStringList
 }
@@ -46,16 +46,22 @@ func main() {
 
 	myApp.MainWindow = fyneApp.NewWindow("poetry")
 
-	listItems := myApp.makeUI()
+	listItems, slide, btns := myApp.makeUI()
 
-	listItems.Resize(fyne.Size{Width: 800, Height: 500})
+	listItems.Resize(fyne.Size{Width: 800, Height: 400})
 	listItems.Move(fyne.Position{X: 0, Y: 0})
 
-	c1 := container.NewWithoutLayout(listItems)
+	slide.Resize(fyne.Size{Width: 800, Height: 50})
+	slide.Move(fyne.Position{X: 0, Y: 400})
+
+	btns.Resize(fyne.Size{Width: 800, Height: 50})
+	btns.Move(fyne.Position{X: 0, Y: 450})
+
+	c1 := container.NewWithoutLayout(listItems, slide, btns)
 
 	myApp.MainWindow.SetContent(c1)
 
-	myApp.MainWindow.Resize(fyne.Size{Width: 800, Height: 500})
+	myApp.MainWindow.Resize(fyne.Size{Width: 800, Height: 550})
 
 	myApp.MainWindow.ShowAndRun()
 }
