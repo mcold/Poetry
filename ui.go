@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
@@ -34,7 +32,6 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container) {
 	slide := widget.NewSliderWithData(0, 1, data)
 	slide.Step = 0.01
 	slide.OnChanged = func(v float64) {
-		fmt.Println(v)
 		data.Set(v)
 		app.LinesArr = hide(app.LinesArrDef, int(v*100))
 		app.ListLinesData.Reload()
@@ -44,11 +41,6 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container) {
 		widget.NewButton("0%", func() {
 			data.Set(0)
 			app.LinesArr = hide(app.LinesArrDef, 0)
-			app.ListLinesData.Reload()
-		}),
-		widget.NewButton("30%", func() {
-			data.Set(0.3)
-			app.LinesArr = hide(app.LinesArrDef, 30)
 			app.ListLinesData.Reload()
 		}),
 		widget.NewButton("50%", func() {

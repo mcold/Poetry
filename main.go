@@ -30,8 +30,16 @@ type Config struct {
 	ListTransData binding.ExternalStringList
 }
 
+const (
+	difHeight = 50
+	winWidth  = 800
+)
+
 func main() {
 	var myApp Config
+	var elemHeight float32
+
+	elemHeight = 400
 
 	fyneApp := app.NewWithID("poetry")
 	myApp.App = fyneApp
@@ -48,20 +56,26 @@ func main() {
 
 	listItems, slide, btns := myApp.makeUI()
 
-	listItems.Resize(fyne.Size{Width: 800, Height: 400})
+	listItems.Resize(fyne.Size{Width: winWidth, Height: elemHeight})
 	listItems.Move(fyne.Position{X: 0, Y: 0})
 
-	slide.Resize(fyne.Size{Width: 800, Height: 50})
-	slide.Move(fyne.Position{X: 0, Y: 400})
+	elemHeight += difHeight
 
-	btns.Resize(fyne.Size{Width: 800, Height: 50})
-	btns.Move(fyne.Position{X: 0, Y: 450})
+	slide.Resize(fyne.Size{Width: winWidth, Height: difHeight})
+	slide.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
+
+	elemHeight += difHeight
+
+	btns.Resize(fyne.Size{Width: winWidth, Height: difHeight})
+	btns.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
+
+	elemHeight += difHeight
 
 	c1 := container.NewWithoutLayout(listItems, slide, btns)
 
 	myApp.MainWindow.SetContent(c1)
 
-	myApp.MainWindow.Resize(fyne.Size{Width: 800, Height: 550})
+	myApp.MainWindow.Resize(fyne.Size{Width: winWidth, Height: elemHeight})
 
 	myApp.MainWindow.ShowAndRun()
 }
