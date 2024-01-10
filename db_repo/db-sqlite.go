@@ -203,10 +203,24 @@ func (repo *SQLiteRepository) ItemsByAuthor(id_author int) ([]Item, error) {
 	return all, nil
 }
 
-func (repo *SQLiteRepository) LinesByItem(id_item int) ([]Line, error) {
-	query := "select id, id_item, num, ttext, stop from line where id_item = ? order by id asc"
+func (repo *SQLiteRepository) LinesByItem(id_item int, page_num int, page_size int) ([]Line, error) {
+	query := `SELECT id,
+	id_item,
+	num,
+	ttext,
+	stop
+FROM (SELECT id,
+			id_item,
+			num,
+			ttext,
+			stop,
+			row_number() over (order by num) as row_num
+		FROM line
+	   WHERE id_item = ?
+	   ORDER BY id ASC)
+WHERE row_num > (? - 1) * ? AND row_num <= ? * ?`
 
-	rows, err := repo.Conn.Query(query, id_item)
+	rows, err := repo.Conn.Query(query, id_item, page_num, page_size, page_num, page_size)
 
 	if err != nil {
 		return nil, err

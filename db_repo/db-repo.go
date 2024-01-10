@@ -8,7 +8,7 @@ type Repository interface {
 	InsertTrans(trans Trans) (*Trans, error)
 	AllAuthors() ([]Author, error)
 	ItemsByAuthor(id_author int) ([]Item, error)
-	LinesByItem(id_item int) ([]Line, error)
+	LinesByItem(id_item int, page_num int, page_size int) ([]Line, error)
 	TransByLine(id_line int) (*Trans, error)
 }
 

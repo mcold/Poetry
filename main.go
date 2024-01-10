@@ -28,6 +28,8 @@ type Config struct {
 	LinesArrDef   []string // text by default
 	ListLinesData binding.ExternalStringList
 	ListTransData binding.ExternalStringList
+	PageNum       int
+	PageSize      int
 }
 
 const (
@@ -38,6 +40,9 @@ const (
 func main() {
 	var myApp Config
 	var elemHeight float32
+
+	myApp.PageNum = 1
+	myApp.PageSize = 10
 
 	elemHeight = 400
 
@@ -54,7 +59,7 @@ func main() {
 
 	myApp.MainWindow = fyneApp.NewWindow("poetry")
 
-	listItems, slide, btns := myApp.makeUI()
+	listItems, slide, btnPcnt, btnPage := myApp.makeUI()
 
 	listItems.Resize(fyne.Size{Width: winWidth, Height: elemHeight})
 	listItems.Move(fyne.Position{X: 0, Y: 0})
@@ -66,12 +71,17 @@ func main() {
 
 	elemHeight += difHeight
 
-	btns.Resize(fyne.Size{Width: winWidth, Height: difHeight})
-	btns.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
+	btnPcnt.Resize(fyne.Size{Width: winWidth, Height: difHeight})
+	btnPcnt.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
 
 	elemHeight += difHeight
 
-	c1 := container.NewWithoutLayout(listItems, slide, btns)
+	btnPage.Resize(fyne.Size{Width: winWidth, Height: difHeight})
+	btnPage.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
+
+	elemHeight += difHeight
+
+	c1 := container.NewWithoutLayout(listItems, slide, btnPcnt, btnPage)
 
 	myApp.MainWindow.SetContent(c1)
 

@@ -7,10 +7,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container) {
+func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyne.Container) {
 	f := 0.2
 
-	Lines, _ := app.DB.LinesByItem(1) // TODO: change arg value
+	// TODO: id_item get from DB
+	id_item := 1
+
+	Lines, _ := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
 	for _, line := range Lines {
 		app.LinesArr = append(app.LinesArr, line.Ttext)
 	}
@@ -37,7 +40,7 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container) {
 		app.ListLinesData.Reload()
 	}
 
-	buttons := container.NewGridWithColumns(4,
+	btnPcnt := container.NewGridWithColumns(4,
 		widget.NewButton("0%", func() {
 			data.Set(0)
 			app.LinesArr = hide(app.LinesArrDef, 0)
@@ -59,5 +62,40 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container) {
 			app.ListLinesData.Reload()
 		}))
 
-	return l_lines, slide, buttons
+	btnPage := container.NewGridWithColumns(4,
+		widget.NewButton("<", func() {
+			newPageNum := app.PageNum - 1
+			if newPageNum <= 0 {
+				newPageNum = 1
+			}
+			if newPageNum != app.PageNum {
+				app.PageNum = newPageNum
+				app.LinesArr = nil
+
+				Lines, _ := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+				for _, line := range Lines {
+					app.LinesArr = append(app.LinesArr, line.Ttext)
+				}
+				app.LinesArrDef = app.LinesArr
+				app.ListLinesData.Reload()
+			}
+		}),
+		widget.NewButton(">", func() {
+			newPageNum := app.PageNum + 1
+
+			Lines, _ := app.DB.LinesByItem(id_item, newPageNum, app.PageSize) // TODO: change arg value
+
+			if len(Lines) > 0 {
+				app.PageNum = newPageNum
+				app.LinesArr = nil
+				for _, line := range Lines {
+					app.LinesArr = append(app.LinesArr, line.Ttext)
+				}
+				app.LinesArrDef = app.LinesArr
+				app.ListLinesData.Reload()
+			}
+
+		}))
+
+	return l_lines, slide, btnPcnt, btnPage
 }
