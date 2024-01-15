@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"poetry/db_repo"
 
@@ -13,8 +14,11 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/widget"
 
 	"database/sql"
+
+	"github.com/joho/godotenv"
 
 	_ "github.com/glebarez/go-sqlite"
 )
@@ -25,9 +29,14 @@ type Config struct {
 	InfoLog       *log.Logger
 	DB            db_repo.Repository
 	LinesArr      []string
-	LinesArrDef   []string // text by default
+	TransArr      []db_repo.Trans
+	LinesArrDef   []string
+	ListLines     *widget.List
 	ListLinesData binding.ExternalStringList
 	ListTransData binding.ExternalStringList
+	ListEditArr   []string
+	ListEditData  binding.ExternalStringList
+	NumLineActive int
 	PageNum       int
 	PageSize      int
 }
@@ -38,11 +47,20 @@ const (
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	var myApp Config
 	var elemHeight float32
 
 	myApp.PageNum = 1
-	myApp.PageSize = 10
+	nPageSize, err := strconv.Atoi(os.Getenv("PAGE_SIZE"))
+	if err != nil {
+		log.Fatal("Error converting PAGE_SIZE value")
+	}
+	myApp.PageSize = nPageSize
 
 	elemHeight = 400
 
@@ -61,7 +79,7 @@ func main() {
 
 	listItems, slide, btnPcnt, btnPage := myApp.makeUI()
 
-	listItems.Resize(fyne.Size{Width: winWidth, Height: elemHeight})
+	listItems.Resize(fyne.Size{Width: winWidth / 2, Height: elemHeight})
 	listItems.Move(fyne.Position{X: 0, Y: 0})
 
 	elemHeight += difHeight
@@ -93,6 +111,12 @@ func main() {
 func (app *Config) connectSQL() (*sql.DB, error) {
 	path := ""
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	dbName := os.Getenv("DB_NAME")
+
 	if os.Getenv("DB_PATH") != "" {
 		path = os.Getenv("DB_PATH")
 	} else {
@@ -101,7 +125,7 @@ func (app *Config) connectSQL() (*sql.DB, error) {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		path = filepath.Join(dir, "DB.db")
+		path = filepath.Join(dir, dbName)
 	}
 
 	db, err := sql.Open("sqlite", path)
@@ -113,6 +137,12 @@ func (app *Config) connectSQL() (*sql.DB, error) {
 }
 
 func (app *Config) setupDB(sqlDB *sql.DB) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	dbName := os.Getenv("DB_NAME")
+
 	app.DB = db_repo.NewSQLiteRepository(sqlDB)
 
 	dir, err := os.Getwd()
@@ -120,7 +150,7 @@ func (app *Config) setupDB(sqlDB *sql.DB) {
 		os.Exit(1)
 	}
 
-	path := filepath.Join(dir, "DB.db")
+	path := filepath.Join(dir, dbName)
 
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		err := app.DB.Migrate()

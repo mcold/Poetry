@@ -1,6 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+
+	"github.com/joho/godotenv"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
@@ -8,14 +15,35 @@ import (
 )
 
 func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyne.Container) {
-	f := 0.2
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	nPcntDef, err := strconv.Atoi(os.Getenv("PCNT_DEF"))
+	if err != nil {
+		log.Fatal("Error converting PCNT_DEF value")
+	}
 
-	// TODO: id_item get from DB
-	id_item := 1
+	f := float64(nPcntDef / 100)
 
-	Lines, _ := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+	idItem, err := strconv.Atoi(os.Getenv("ID_ITEM"))
+	if err != nil {
+		log.Fatal("Error converting ID_ITEM value")
+	}
+	id_item := idItem
+
+	Lines, err := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+	if err != nil {
+		log.Fatal("Error loading data from DB")
+	}
+
 	for _, line := range Lines {
 		app.LinesArr = append(app.LinesArr, line.Ttext)
+	}
+
+	app.TransArr, err = app.DB.TransArrByLine(id_item, app.PageNum, app.PageSize)
+	if err != nil {
+		log.Fatal("Error loading data from DB")
 	}
 
 	app.LinesArrDef = app.LinesArr
@@ -29,16 +57,27 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 			o.(*widget.Label).Bind(i.(binding.String))
 		})
 
-	// btnLeft := widget.NewButtonWithIcon("Left", fyne.NewStaticResource())
+	app.ListLines = l_lines
 
 	data := binding.BindFloat(&f)
 	slide := widget.NewSliderWithData(0, 1, data)
-	slide.Step = 0.01
+	// nStepSide, err := strconv.Atoi(os.Getenv("PCNT_STEP"))
+	// if err != nil {
+	// 	log.Fatal("Error converting PCNT_STEP value")
+	// }
+	l_lines.OnSelected = app.refreshData
+
+	slide.Step = 0.1
+	fmt.Println(slide.Step)
 	slide.OnChanged = func(v float64) {
 		data.Set(v)
 		app.LinesArr = hide(app.LinesArrDef, int(v*100))
 		app.ListLinesData.Reload()
 	}
+
+	data.AddListener(binding.NewDataListener(func() {
+		fmt.Println(data.Get())
+	}))
 
 	btnPcnt := container.NewGridWithColumns(4,
 		widget.NewButton("0%", func() {
@@ -71,11 +110,20 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 			if newPageNum != app.PageNum {
 				app.PageNum = newPageNum
 				app.LinesArr = nil
+				app.TransArr = nil
 
-				Lines, _ := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+				Lines, err := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+				if err != nil {
+					log.Fatal("Error loading data from DB")
+				}
 				for _, line := range Lines {
 					app.LinesArr = append(app.LinesArr, line.Ttext)
 				}
+				app.TransArr, err = app.DB.TransArrByLine(id_item, app.PageNum, app.PageSize)
+				if err != nil {
+					log.Fatal("Error loading data from DB")
+				}
+
 				app.LinesArrDef = app.LinesArr
 				app.ListLinesData.Reload()
 			}
@@ -83,7 +131,15 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 		widget.NewButton(">", func() {
 			newPageNum := app.PageNum + 1
 
-			Lines, _ := app.DB.LinesByItem(id_item, newPageNum, app.PageSize) // TODO: change arg value
+			Lines, err := app.DB.LinesByItem(id_item, newPageNum, app.PageSize) // TODO: change arg value
+			if err != nil {
+				log.Fatal("Error loading data from DB")
+			}
+			app.TransArr = nil
+			app.TransArr, err = app.DB.TransArrByLine(id_item, app.PageNum, app.PageSize)
+			if err != nil {
+				log.Fatal("Error loading data from DB")
+			}
 
 			if len(Lines) > 0 {
 				app.PageNum = newPageNum
@@ -94,8 +150,18 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 				app.LinesArrDef = app.LinesArr
 				app.ListLinesData.Reload()
 			}
-
 		}))
 
 	return l_lines, slide, btnPcnt, btnPage
+}
+
+func (app *Config) refreshData(id int) {
+	app.NumLineActive = id
+	for i := 0; i < app.PageSize; i++ {
+		if i != id {
+			app.ListLines.Unselect(i)
+			fmt.Println(i)
+		}
+	}
+	app.ListLines.Refresh()
 }

@@ -10,6 +10,7 @@ type Repository interface {
 	ItemsByAuthor(id_author int) ([]Item, error)
 	LinesByItem(id_item int, page_num int, page_size int) ([]Line, error)
 	TransByLine(id_line int) (*Trans, error)
+	TransArrByLine(id_item int, page_num int, page_size int) ([]Trans, error)
 }
 
 type Author struct {

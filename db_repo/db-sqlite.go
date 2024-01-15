@@ -205,20 +205,20 @@ func (repo *SQLiteRepository) ItemsByAuthor(id_author int) ([]Item, error) {
 
 func (repo *SQLiteRepository) LinesByItem(id_item int, page_num int, page_size int) ([]Line, error) {
 	query := `SELECT id,
-	id_item,
-	num,
-	ttext,
-	stop
-FROM (SELECT id,
-			id_item,
-			num,
-			ttext,
-			stop,
-			row_number() over (order by num) as row_num
-		FROM line
-	   WHERE id_item = ?
-	   ORDER BY id ASC)
-WHERE row_num > (? - 1) * ? AND row_num <= ? * ?`
+					 id_item,
+					 num,
+					 ttext,
+					 stop
+				FROM (SELECT id,
+							 id_item,
+							 num,
+							 ttext,
+							 stop,
+							 row_number() over (order by num) as row_num
+						FROM line
+					WHERE id_item = ?
+					ORDER BY id ASC)
+				WHERE row_num > (? - 1) * ? AND row_num <= ? * ?`
 
 	rows, err := repo.Conn.Query(query, id_item, page_num, page_size, page_num, page_size)
 
@@ -261,4 +261,51 @@ func (repo *SQLiteRepository) TransByLine(id_line int) (*Trans, error) {
 	}
 
 	return &tr, nil
+}
+
+func (repo *SQLiteRepository) TransArrByLine(id_item int, page_num int, page_size int) ([]Trans, error) {
+	query := `SELECT t.id,
+					 t.id_line, 
+					 t.ttext, 
+					 t.lang 
+				FROM (SELECT id,
+				          	 id_item,
+							 num,
+							 ttext,
+							 stop
+						FROM (SELECT id,
+						 			id_item,
+						 			num,
+									ttext,
+									stop,
+									row_number() over (order by num) as row_num
+								FROM line
+							WHERE id_item = ?
+							ORDER BY id ASC)
+						WHERE row_num > (? - 1) * ? AND row_num <= ? * ?) l
+					JOIN trans t ON t.id_line = l.id`
+
+	rows, err := repo.Conn.Query(query, id_item, page_num, page_size, page_num, page_size)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var all []Trans
+	for rows.Next() {
+		var tr Trans
+		err := rows.Scan(
+			&tr.ID,
+			&tr.ID_Line,
+			&tr.Ttext,
+			&tr.Lang,
+		)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, tr)
+	}
+
+	return all, nil
 }
