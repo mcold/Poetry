@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyne.Container) {
+func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyne.Container, *fyne.Container) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -68,16 +67,15 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 	l_lines.OnSelected = app.refreshData
 
 	slide.Step = 0.1
-	fmt.Println(slide.Step)
 	slide.OnChanged = func(v float64) {
 		data.Set(v)
 		app.LinesArr = hide(app.LinesArrDef, int(v*100))
 		app.ListLinesData.Reload()
 	}
 
-	data.AddListener(binding.NewDataListener(func() {
-		fmt.Println(data.Get())
-	}))
+	// data.AddListener(binding.NewDataListener(func() {
+	// 	fmt.Println(data.Get())
+	// }))
 
 	btnPcnt := container.NewGridWithColumns(4,
 		widget.NewButton("0%", func() {
@@ -112,14 +110,14 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 				app.LinesArr = nil
 				app.TransArr = nil
 
-				Lines, err := app.DB.LinesByItem(id_item, app.PageNum, app.PageSize) // TODO: change arg value
+				Lines, err := app.DB.LinesByItem(app.ItemID, app.PageNum, app.PageSize) // TODO: change arg value
 				if err != nil {
 					log.Fatal("Error loading data from DB")
 				}
 				for _, line := range Lines {
 					app.LinesArr = append(app.LinesArr, line.Ttext)
 				}
-				app.TransArr, err = app.DB.TransArrByLine(id_item, app.PageNum, app.PageSize)
+				app.TransArr, err = app.DB.TransArrByLine(app.ItemID, app.PageNum, app.PageSize)
 				if err != nil {
 					log.Fatal("Error loading data from DB")
 				}
@@ -131,12 +129,12 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 		widget.NewButton(">", func() {
 			newPageNum := app.PageNum + 1
 
-			Lines, err := app.DB.LinesByItem(id_item, newPageNum, app.PageSize) // TODO: change arg value
+			Lines, err := app.DB.LinesByItem(app.ItemID, newPageNum, app.PageSize) // TODO: change arg value
 			if err != nil {
 				log.Fatal("Error loading data from DB")
 			}
 			app.TransArr = nil
-			app.TransArr, err = app.DB.TransArrByLine(id_item, app.PageNum, app.PageSize)
+			app.TransArr, err = app.DB.TransArrByLine(app.ItemID, app.PageNum, app.PageSize)
 			if err != nil {
 				log.Fatal("Error loading data from DB")
 			}
@@ -152,7 +150,47 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 			}
 		}))
 
-	return l_lines, slide, btnPcnt, btnPage
+	btnItem := container.NewGridWithColumns(2,
+		widget.NewButton("👆", func() {
+			newItemID := app.ItemID - 1
+			newLines, err := app.DB.LinesByItem(newItemID, 1, app.PageSize) // TODO: change arg value
+			if err != nil {
+				log.Fatal("Error loading data from DB")
+			}
+			if len(newLines) > 0 {
+				app.ItemID = newItemID
+				app.LinesArr = nil
+				app.TransArr = nil
+
+				for _, line := range newLines {
+					app.LinesArr = append(app.LinesArr, line.Ttext)
+				}
+				app.PageNum = 1
+				app.LinesArrDef = app.LinesArr
+				app.ListLinesData.Reload()
+			}
+		}),
+		widget.NewButton("👇", func() {
+			newItemID := app.ItemID + 1
+			newLines, err := app.DB.LinesByItem(newItemID, 1, app.PageSize) // TODO: change arg value
+			if err != nil {
+				log.Fatal("Error loading data from DB")
+			}
+			if len(newLines) > 0 {
+				app.ItemID = newItemID
+				app.LinesArr = nil
+				app.TransArr = nil
+
+				for _, line := range newLines {
+					app.LinesArr = append(app.LinesArr, line.Ttext)
+				}
+				app.PageNum = 1
+				app.LinesArrDef = app.LinesArr
+				app.ListLinesData.Reload()
+			}
+		}))
+
+	return l_lines, slide, btnPcnt, btnPage, btnItem
 }
 
 func (app *Config) refreshData(id int) {
@@ -160,7 +198,6 @@ func (app *Config) refreshData(id int) {
 	for i := 0; i < app.PageSize; i++ {
 		if i != id {
 			app.ListLines.Unselect(i)
-			fmt.Println(i)
 		}
 	}
 	app.ListLines.Refresh()

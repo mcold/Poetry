@@ -27,6 +27,7 @@ type Config struct {
 	App           fyne.App
 	MainWindow    fyne.Window
 	InfoLog       *log.Logger
+	ItemID        int
 	DB            db_repo.Repository
 	LinesArr      []string
 	TransArr      []db_repo.Trans
@@ -68,6 +69,12 @@ func main() {
 	myApp.App = fyneApp
 	myApp.InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 
+	/*TODO: change to storing flag in DB*/
+	myApp.ItemID, err = strconv.Atoi(os.Getenv("ID_ITEM"))
+	if err != nil {
+		log.Fatal("Error converting ItemID value")
+	}
+
 	sqlDB, err := myApp.connectSQL()
 	if err != nil {
 		log.Panic(err)
@@ -77,7 +84,7 @@ func main() {
 
 	myApp.MainWindow = fyneApp.NewWindow("poetry")
 
-	listItems, slide, btnPcnt, btnPage := myApp.makeUI()
+	listItems, slide, btnPcnt, btnPage, btnItem := myApp.makeUI()
 
 	listItems.Resize(fyne.Size{Width: winWidth / 2, Height: elemHeight})
 	listItems.Move(fyne.Position{X: 0, Y: 0})
@@ -97,9 +104,14 @@ func main() {
 	btnPage.Resize(fyne.Size{Width: winWidth, Height: difHeight})
 	btnPage.Move(fyne.Position{X: 0, Y: elemHeight - difHeight})
 
+	// elemHeight += difHeight
+
+	btnItem.Resize(fyne.Size{Width: winWidth / 2, Height: difHeight})
+	btnItem.Move(fyne.Position{X: winWidth / 2, Y: elemHeight - difHeight})
+
 	elemHeight += difHeight
 
-	c1 := container.NewWithoutLayout(listItems, slide, btnPcnt, btnPage)
+	c1 := container.NewWithoutLayout(listItems, slide, btnPcnt, btnPage, btnItem)
 
 	myApp.MainWindow.SetContent(c1)
 

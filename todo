@@ -1,0 +1,6 @@
+- [ ] author filter:
+    - store author_id in config 
+    - next / prev buttons through author
+- [ ] extension:
+    - increase PageNum according to window's heigh
+    - change button positions
