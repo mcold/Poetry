@@ -13,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyne.Container, *fyne.Container) {
+func (app *Config) makeUI() (*widget.List, *widget.Slider, *widget.Select, *widget.Label, *fyne.Container, *fyne.Container, *fyne.Container) {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -60,41 +60,94 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 
 	data := binding.BindFloat(&f)
 	slide := widget.NewSliderWithData(0, 1, data)
-	// nStepSide, err := strconv.Atoi(os.Getenv("PCNT_STEP"))
-	// if err != nil {
-	// 	log.Fatal("Error converting PCNT_STEP value")
-	// }
 	l_lines.OnSelected = app.refreshData
 
 	slide.Step = 0.1
 	slide.OnChanged = func(v float64) {
 		data.Set(v)
+		app.PcntHide = v * 100
 		app.LinesArr = hide(app.LinesArrDef, int(v*100))
 		app.ListLinesData.Reload()
 	}
 
-	// data.AddListener(binding.NewDataListener(func() {
-	// 	fmt.Println(data.Get())
-	// }))
+	l_authors, err := app.DB.AllAuthors()
+	if err != nil {
+		log.Fatal("Error loading data from DB")
+	}
+
+	var l_authors_str []string
+
+	for _, author := range l_authors {
+		l_authors_str = append(l_authors_str, author.Name)
+	}
+
+	app.ItemNameData = binding.BindString(&app.ItemName)
+	lblItem := widget.NewLabelWithData(app.ItemNameData)
+
+	selAuthor := widget.NewSelect(l_authors_str, func(selected string) {
+		oldAuthorID := app.AuthorID
+		for _, author := range l_authors {
+			if author.Name == selected {
+				app.AuthorID = int(author.ID)
+
+				app.AuthorItemsArr, err = app.DB.ItemsByAuthor(app.AuthorID)
+				if err != nil {
+					log.Fatal("Error loading data from DB")
+				}
+				if app.AuthorID != oldAuthorID {
+					app.ItemID = int(app.AuthorItemsArr[0].ID)
+					app.LinesArr = nil
+					app.TransArr = nil
+
+					newLines, err := app.DB.LinesByItem(app.ItemID, 1, app.PageSize) // TODO: change arg value
+					if err != nil {
+						log.Fatal("Error loading data from DB")
+					}
+
+					for _, line := range newLines {
+						app.LinesArr = append(app.LinesArr, line.Ttext)
+					}
+
+					app.PageNum = 1
+					app.LinesArrDef = app.LinesArr
+					app.LinesArr = hide(app.LinesArrDef, int(app.PcntHide))
+					app.ListLinesData.Reload()
+
+					app.ItemsNameArr = nil
+					for _, item := range app.AuthorItemsArr {
+						app.ItemsNameArr = append(app.ItemsNameArr, item.Name)
+					}
+					app.ItemName = app.ItemsNameArr[0]
+					app.ItemNameData.Reload()
+				}
+			}
+		}
+	})
+
+	selAuthor.SetSelected(l_authors_str[0])
 
 	btnPcnt := container.NewGridWithColumns(4,
 		widget.NewButton("0%", func() {
 			data.Set(0)
+			app.PcntHide = 0
 			app.LinesArr = hide(app.LinesArrDef, 0)
 			app.ListLinesData.Reload()
 		}),
 		widget.NewButton("50%", func() {
 			data.Set(0.5)
+			app.PcntHide = 50
 			app.LinesArr = hide(app.LinesArrDef, 50)
 			app.ListLinesData.Reload()
 		}),
 		widget.NewButton("70%", func() {
 			data.Set(0.7)
+			app.PcntHide = 70
 			app.LinesArr = hide(app.LinesArrDef, 70)
 			app.ListLinesData.Reload()
 		}),
 		widget.NewButton("100%", func() {
 			data.Set(1)
+			app.PcntHide = 100
 			app.LinesArr = hide(app.LinesArrDef, 100)
 			app.ListLinesData.Reload()
 		}))
@@ -123,6 +176,7 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 				}
 
 				app.LinesArrDef = app.LinesArr
+				app.LinesArr = hide(app.LinesArrDef, int(app.PcntHide))
 				app.ListLinesData.Reload()
 			}
 		}),
@@ -146,51 +200,84 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *fyne.Container, *fyn
 					app.LinesArr = append(app.LinesArr, line.Ttext)
 				}
 				app.LinesArrDef = app.LinesArr
+				app.LinesArr = hide(app.LinesArrDef, int(app.PcntHide))
 				app.ListLinesData.Reload()
 			}
 		}))
 
 	btnItem := container.NewGridWithColumns(2,
 		widget.NewButton("👆", func() {
-			newItemID := app.ItemID - 1
-			newLines, err := app.DB.LinesByItem(newItemID, 1, app.PageSize) // TODO: change arg value
+			prevItemID := 0
+			for _, item := range app.AuthorItemsArr {
+				if item.ID == int64(app.ItemID) {
+					if prevItemID != 0 {
+						app.ItemID = prevItemID
+					} else {
+						app.ItemID = int(app.AuthorItemsArr[0].ID)
+					}
+				} else {
+					prevItemID = int(item.ID)
+					app.ItemName = item.Name
+					app.ItemNameData.Reload()
+				}
+			}
+
+			app.LinesArr = nil
+			app.TransArr = nil
+			// fmt.Println("There")
+			newLines, err := app.DB.LinesByItem(app.ItemID, 1, app.PageSize) // TODO: change arg value
 			if err != nil {
 				log.Fatal("Error loading data from DB")
 			}
-			if len(newLines) > 0 {
-				app.ItemID = newItemID
-				app.LinesArr = nil
-				app.TransArr = nil
 
-				for _, line := range newLines {
-					app.LinesArr = append(app.LinesArr, line.Ttext)
-				}
-				app.PageNum = 1
-				app.LinesArrDef = app.LinesArr
-				app.ListLinesData.Reload()
+			for _, line := range newLines {
+				app.LinesArr = append(app.LinesArr, line.Ttext)
 			}
+
+			app.PageNum = 1
+			app.LinesArrDef = app.LinesArr
+			app.LinesArr = hide(app.LinesArrDef, int(app.PcntHide))
+			app.ListLinesData.Reload()
+
 		}),
 		widget.NewButton("👇", func() {
-			newItemID := app.ItemID + 1
-			newLines, err := app.DB.LinesByItem(newItemID, 1, app.PageSize) // TODO: change arg value
+			b_found := false
+			for _, item := range app.AuthorItemsArr {
+				if b_found {
+					app.ItemID = int(item.ID)
+					app.ItemName = item.Name
+					app.ItemNameData.Reload()
+					break
+				}
+				if item.ID == int64(app.ItemID) {
+					b_found = true
+				}
+			}
+
+			// if another author
+			if !b_found {
+				app.ItemID = int(app.AuthorItemsArr[0].ID)
+			}
+
+			app.LinesArr = nil
+			app.TransArr = nil
+
+			newLines, err := app.DB.LinesByItem(app.ItemID, 1, app.PageSize) // TODO: change arg value
 			if err != nil {
 				log.Fatal("Error loading data from DB")
 			}
-			if len(newLines) > 0 {
-				app.ItemID = newItemID
-				app.LinesArr = nil
-				app.TransArr = nil
 
-				for _, line := range newLines {
-					app.LinesArr = append(app.LinesArr, line.Ttext)
-				}
-				app.PageNum = 1
-				app.LinesArrDef = app.LinesArr
-				app.ListLinesData.Reload()
+			for _, line := range newLines {
+				app.LinesArr = append(app.LinesArr, line.Ttext)
 			}
+
+			app.PageNum = 1
+			app.LinesArrDef = app.LinesArr
+			app.LinesArr = hide(app.LinesArrDef, int(app.PcntHide))
+			app.ListLinesData.Reload()
 		}))
 
-	return l_lines, slide, btnPcnt, btnPage, btnItem
+	return l_lines, slide, selAuthor, lblItem, btnPcnt, btnPage, btnItem
 }
 
 func (app *Config) refreshData(id int) {

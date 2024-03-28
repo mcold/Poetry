@@ -24,22 +24,28 @@ import (
 )
 
 type Config struct {
-	App           fyne.App
-	MainWindow    fyne.Window
-	InfoLog       *log.Logger
-	ItemID        int
-	DB            db_repo.Repository
-	LinesArr      []string
-	TransArr      []db_repo.Trans
-	LinesArrDef   []string
-	ListLines     *widget.List
-	ListLinesData binding.ExternalStringList
-	ListTransData binding.ExternalStringList
-	ListEditArr   []string
-	ListEditData  binding.ExternalStringList
-	NumLineActive int
-	PageNum       int
-	PageSize      int
+	App            fyne.App
+	AuthorID       int
+	AuthorItemsArr []db_repo.Item
+	MainWindow     fyne.Window
+	InfoLog        *log.Logger
+	ItemID         int
+	DB             db_repo.Repository
+	ItemsNameArr   []string
+	ItemName       string
+	ItemNameData   binding.ExternalString
+	LinesArr       []string
+	TransArr       []db_repo.Trans
+	LinesArrDef    []string
+	ListLines      *widget.List
+	ListLinesData  binding.ExternalStringList
+	ListTransData  binding.ExternalStringList
+	ListEditArr    []string
+	ListEditData   binding.ExternalStringList
+	NumLineActive  int
+	PageNum        int
+	PageSize       int
+	PcntHide       float64
 }
 
 const (
@@ -65,7 +71,7 @@ func main() {
 
 	elemHeight = 400
 
-	fyneApp := app.NewWithID("poetry")
+	fyneApp := app.NewWithID("POETRY")
 	myApp.App = fyneApp
 	myApp.InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 
@@ -82,12 +88,20 @@ func main() {
 
 	myApp.setupDB(sqlDB)
 
-	myApp.MainWindow = fyneApp.NewWindow("poetry")
+	myApp.MainWindow = fyneApp.NewWindow("POETRY")
 
-	listItems, slide, btnPcnt, btnPage, btnItem := myApp.makeUI()
+	listItems, slide, selAuthor, lblItem, btnPcnt, btnPage, btnItem := myApp.makeUI()
+
+	selAuthor.Resize(fyne.Size{Width: winWidth / 2, Height: difHeight})
+	selAuthor.Move(fyne.Position{X: 0, Y: 0})
+
+	lblItem.Resize(fyne.Size{Width: winWidth / 2, Height: difHeight})
+	lblItem.Move(fyne.Position{X: winWidth / 2, Y: 0})
+
+	elemHeight += difHeight
 
 	listItems.Resize(fyne.Size{Width: winWidth / 2, Height: elemHeight})
-	listItems.Move(fyne.Position{X: 0, Y: 0})
+	listItems.Move(fyne.Position{X: 0, Y: difHeight})
 
 	elemHeight += difHeight
 
@@ -111,7 +125,7 @@ func main() {
 
 	elemHeight += difHeight
 
-	c1 := container.NewWithoutLayout(listItems, slide, btnPcnt, btnPage, btnItem)
+	c1 := container.NewWithoutLayout(selAuthor, lblItem, listItems, slide, btnPcnt, btnPage, btnItem)
 
 	myApp.MainWindow.SetContent(c1)
 

@@ -4,3 +4,6 @@
 - [ ] extension:
     - increase PageNum according to window's heigh
     - change button positions
+- [ ] make filter language
+    - field in author table - lang
+- [ ] solve trouble with null value SQL get data functions    
