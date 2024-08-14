@@ -100,7 +100,7 @@ func main() {
 
 	elemHeight += difHeight
 
-	listItems.Resize(fyne.Size{Width: winWidth / 2, Height: elemHeight})
+	listItems.Resize(fyne.Size{Width: winWidth, Height: elemHeight})
 	listItems.Move(fyne.Position{X: 0, Y: difHeight})
 
 	elemHeight += difHeight

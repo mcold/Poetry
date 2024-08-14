@@ -208,19 +208,23 @@ func (app *Config) makeUI() (*widget.List, *widget.Slider, *widget.Select, *widg
 	btnItem := container.NewGridWithColumns(2,
 		widget.NewButton("👆", func() {
 			prevItemID := 0
+			prevItemName := app.ItemName
 			for _, item := range app.AuthorItemsArr {
-				if item.ID == int64(app.ItemID) {
-					if prevItemID != 0 {
-						app.ItemID = prevItemID
+				if item.ID <= int64(app.ItemID) {
+					if item.ID == int64(app.ItemID) {
+						if prevItemID != 0 {
+							app.ItemID = prevItemID
+							break
+						}
 					} else {
-						app.ItemID = int(app.AuthorItemsArr[0].ID)
+						prevItemID = int(item.ID)
+						prevItemName = item.Name
 					}
-				} else {
-					prevItemID = int(item.ID)
-					app.ItemName = item.Name
-					app.ItemNameData.Reload()
 				}
 			}
+
+			app.ItemName = prevItemName
+			app.ItemNameData.Reload()
 
 			app.LinesArr = nil
 			app.TransArr = nil
